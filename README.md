@@ -231,6 +231,10 @@ http://localhost:4000
 * Edit or delete Task
 
 ![image alt](https://github.com/GowriChandanaPB/smart-task-manager-backend/blob/7069d7c9ad55d472b3be0054fd16edb583f911ff/edit_delete_task.jpeg)
+
+* Search Task
+
+![image alt](https://github.com/GowriChandanaPB/smart-task-manager-backend/blob/c020aa0526b1d0b73365484727e3a674cd1906fb/task7.jpeg)
 ---
 
 ## 7. Architecture Decisions
