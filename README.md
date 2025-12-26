@@ -221,11 +221,16 @@ http://localhost:4000
 > Screenshots of the Flutter application:
 
 * LightTheam Dashboard
+  
 ![image alt](https://github.com/GowriChandanaPB/smart-task-manager-backend/blob/5f6f28f582bd9a1da3a45af632a4c958dc8a783e/lightdark.jpeg)
 
 * Create Task
+  
 ![image alt](https://github.com/GowriChandanaPB/smart-task-manager-backend/blob/54dca3e55b95ec9327c57ca49739825e01f948b4/create_task.jpeg)
 
+* Edit or delete Task
+
+![image alt](https://github.com/GowriChandanaPB/smart-task-manager-backend/blob/7069d7c9ad55d472b3be0054fd16edb583f911ff/edit_delete_task.jpeg)
 ---
 
 ## 7. Architecture Decisions
