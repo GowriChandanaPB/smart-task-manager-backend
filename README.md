@@ -220,12 +220,10 @@ http://localhost:4000
 
 > Screenshots of the Flutter application:
 
-* Task Dashboard
-* Create Task Screen
-* Update Task Dialog
-* Filter & Priority View
+* LightTheam Dashboard
+![image alt](https://github.com/GowriChandanaPB/smart-task-manager-backend/blob/3761b291b79b964b6e8f49b8381b5a24971f5abe/task1.jpeg)
 
-*(Add screenshots here when sharing the repository)*
+* DarkTheam Dashboard
 
 ---
 
