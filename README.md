@@ -223,7 +223,8 @@ http://localhost:4000
 * LightTheam Dashboard
 ![image alt](https://github.com/GowriChandanaPB/smart-task-manager-backend/blob/5f6f28f582bd9a1da3a45af632a4c958dc8a783e/lightdark.jpeg)
 
-* 
+* Create Task
+![image alt](https://github.com/GowriChandanaPB/smart-task-manager-backend/blob/54dca3e55b95ec9327c57ca49739825e01f948b4/create_task.jpeg)
 
 ---
 
