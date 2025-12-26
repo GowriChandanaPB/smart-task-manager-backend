@@ -14,14 +14,16 @@ class MyApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final themeMode = ref.watch(themeModeProvider);
+    final themeMode = ref.watch(themeProvider);
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
+      title: 'Smart Task Manager',
+      themeMode: themeMode,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
-      themeMode: themeMode,
       home: const TaskDashboardScreen(),
     );
   }
 }
+

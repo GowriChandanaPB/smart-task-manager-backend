@@ -10,6 +10,15 @@ class TaskRepository {
         .map((e) => TaskModel.fromJson(e))
         .toList();
   }
+  Future<Map<String, dynamic>> analyzeTask(
+      Map<String, dynamic> payload) async {
+    final response = await DioClient.dio.post(
+      '/tasks/analyze',
+      data: payload,
+    );
+
+    return response.data as Map<String, dynamic>;
+  }
   Future<Map<String, dynamic>> createTask(
       Map<String, dynamic> payload) async {
     final response = await DioClient.dio.post(
@@ -34,11 +43,14 @@ Future<void> updateTask({
   required String taskId,
   required Map<String, dynamic> payload,
 }) async {
-  await DioClient.dio.put(
+  await DioClient.dio.patch(
     '/tasks/$taskId',
     data: payload,
   );
 }
+
+
+
 
 Future<void> deleteTask(String taskId) async {
   await DioClient.dio.delete('/tasks/$taskId');

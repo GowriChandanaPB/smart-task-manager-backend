@@ -7,7 +7,7 @@ import '../providers/create_task_provider.dart';
 import '../providers/task_provider.dart';
 
 class CreateTaskBottomSheet extends ConsumerStatefulWidget {
-  final TaskModel? task; // null → create | not null → edit
+  final TaskModel? task;
 
   const CreateTaskBottomSheet({super.key, this.task});
 
@@ -16,8 +16,7 @@ class CreateTaskBottomSheet extends ConsumerStatefulWidget {
       _CreateTaskBottomSheetState();
 }
 
-class _CreateTaskBottomSheetState
-    extends ConsumerState<CreateTaskBottomSheet> {
+class _CreateTaskBottomSheetState extends ConsumerState<CreateTaskBottomSheet> {
   final _formKey = GlobalKey<FormState>();
 
   final _titleController = TextEditingController();
@@ -40,16 +39,13 @@ class _CreateTaskBottomSheetState
   void initState() {
     super.initState();
 
-    // 🔹 Prefill fields for Edit mode
-    if (isEditMode) {
-      final task = widget.task!;
-      _titleController.text = task.title;
-      _descriptionController.text = task.description;
-      _assignedToController.text = task.assignedTo ?? '';
-      _dueDate = task.dueDate;
-      _selectedCategory = task.category;
-      _selectedPriority = task.priority;
-      _showPreview = true; // Skip analyze in edit mode
+    if (widget.task != null) {
+      _titleController.text = widget.task!.title;
+      _descriptionController.text = widget.task!.description;
+      _assignedToController.text = widget.task!.assignedTo ?? '';
+      _selectedCategory = widget.task!.category;
+      _selectedPriority = widget.task!.priority;
+      _dueDate = widget.task!.dueDate;
     }
   }
 
@@ -83,95 +79,68 @@ class _CreateTaskBottomSheetState
   Future<void> _handleSubmit() async {
     if (!_formKey.currentState!.validate()) return;
 
-    // ✏️ EDIT MODE → Update task
-    if (isEditMode) {
-      final payload = {
-        'title': _titleController.text.trim(),
-        'description': _descriptionController.text.trim(),
-        'assigned_to': _assignedToController.text.trim(),
-        'due_date': _dueDate?.toIso8601String(),
-        'category': _selectedCategory,
-        'priority': _selectedPriority,
-      };
+    setState(() => _isSubmitting = true);
 
-      try {
+    final Map<String, dynamic> payload = {};
+
+    payload['title'] = _titleController.text.trim();
+    payload['description'] = _descriptionController.text.trim();
+
+    if (_selectedCategory != null) {
+      payload['category'] = _selectedCategory;
+    }
+    if (_selectedPriority != null) {
+      payload['priority'] = _selectedPriority;
+    }
+    if (_assignedToController.text.trim().isNotEmpty) {
+      payload['assigned_to'] = _assignedToController.text.trim();
+    }
+    if (_dueDate != null) {
+      payload['due_date'] = _dueDate!.toIso8601String();
+    }
+
+    try {
+      if (isEditMode) {
+        // ✏️ UPDATE
         await TaskRepository().updateTask(
           taskId: widget.task!.id,
           payload: payload,
         );
-
-        ref.invalidate(taskProvider);
-        Navigator.pop(context);
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Task updated successfully')),
-        );
-      } catch (_) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to update task'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-      return;
-    }
-
-    // 🧠 CREATE MODE → Step 2: Save task
-    if (_showPreview) {
-      final payload = {
-        'title': _titleController.text.trim(),
-        'description': _descriptionController.text.trim(),
-        'assigned_to': _assignedToController.text.trim(),
-        'due_date': _dueDate?.toIso8601String(),
-        'category': _selectedCategory,
-        'priority': _selectedPriority,
-      };
-
-      try {
+      } else if (_showPreview) {
+        // ✅ CREATE (after analyze)
         await ref.read(createTaskProvider(payload).future);
+      } else {
+        // 🔍 ANALYZE
+        final result = await ref.read(createTaskProvider(payload).future);
 
-        ref.invalidate(taskProvider);
-        Navigator.pop(context);
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Task created successfully')),
-        );
-      } catch (_) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to save task'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        setState(() {
+          _previewData = result;
+          _showPreview = true;
+          _selectedCategory = result['category'];
+          _selectedPriority = result['priority'];
+        });
+        
+        setState(() => _isSubmitting = false);
+        //return;
       }
-      return;
-    }
 
-    // 🧠 CREATE MODE → Step 1: Analyze
-    setState(() => _isSubmitting = true);
+      await ref.refresh(taskProvider.future);
 
-    final analyzePayload = {
-      'title': _titleController.text.trim(),
-      'description': _descriptionController.text.trim(),
-      'assigned_to': _assignedToController.text.trim(),
-      'due_date': _dueDate?.toIso8601String(),
-    };
+      Navigator.pop(context);
 
-    try {
-      final result =
-          await ref.read(createTaskProvider(analyzePayload).future);
-
-      setState(() {
-        _previewData = result;
-        _showPreview = true;
-        _selectedCategory = result['category'];
-        _selectedPriority = result['priority'];
-      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            isEditMode
+                ? 'Task updated successfully'
+                : 'Task created successfully',
+          ),
+        ),
+      );
     } catch (_) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Failed to analyze task'),
+          content: Text('Failed to save task'),
           backgroundColor: Colors.red,
         ),
       );
@@ -211,25 +180,21 @@ class _CreateTaskBottomSheetState
 
                 TextFormField(
                   controller: _titleController,
-                  decoration:
-                      const InputDecoration(labelText: 'Title'),
-                  validator: (v) =>
-                      v == null || v.trim().isEmpty
-                          ? 'Title is required'
-                          : null,
+                  decoration: const InputDecoration(labelText: 'Title'),
+                  validator: (v) => v == null || v.trim().isEmpty
+                      ? 'Title is required'
+                      : null,
                 ),
 
                 const SizedBox(height: 12),
 
                 TextFormField(
                   controller: _descriptionController,
-                  decoration:
-                      const InputDecoration(labelText: 'Description'),
+                  decoration: const InputDecoration(labelText: 'Description'),
                   maxLines: 3,
-                  validator: (v) =>
-                      v == null || v.trim().isEmpty
-                          ? 'Description is required'
-                          : null,
+                  validator: (v) => v == null || v.trim().isEmpty
+                      ? 'Description is required'
+                      : null,
                 ),
 
                 const SizedBox(height: 12),
@@ -241,15 +206,13 @@ class _CreateTaskBottomSheetState
                         ? 'Select Due Date'
                         : 'Due: ${_dueDate!.day}/${_dueDate!.month}/${_dueDate!.year}',
                   ),
-                  trailing:
-                      const Icon(Icons.calendar_today),
+                  trailing: const Icon(Icons.calendar_today),
                   onTap: _pickDueDate,
                 ),
 
                 TextFormField(
                   controller: _assignedToController,
-                  decoration: const InputDecoration(
-                      labelText: 'Assigned To'),
+                  decoration: const InputDecoration(labelText: 'Assigned To'),
                 ),
 
                 const SizedBox(height: 16),
@@ -260,56 +223,51 @@ class _CreateTaskBottomSheetState
                     child: Padding(
                       padding: const EdgeInsets.all(12),
                       child: Column(
-                        crossAxisAlignment:
-                            CrossAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
                             'Auto Classification Preview',
-                            style: TextStyle(
-                                fontWeight: FontWeight.bold),
+                            style: TextStyle(fontWeight: FontWeight.bold),
                           ),
                           const SizedBox(height: 8),
-                          Text(
-                              'Category: ${_previewData!['category']}'),
-                          Text(
-                              'Priority: ${_previewData!['priority']}'),
+                          Text('Category: ${_previewData!['category']}'),
+                          Text('Priority: ${_previewData!['priority']}'),
                         ],
                       ),
                     ),
                   ),
 
-                if (_showPreview)
+                if (_showPreview || isEditMode)
                   Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'Override Classification',
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold),
+                        'Classification',
+                        style: TextStyle(fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 8),
 
                       DropdownButtonFormField<String>(
                         value: _selectedCategory,
                         decoration: const InputDecoration(
-                            labelText: 'Category'),
-                        items: const [
-                          'scheduling',
-                          'finance',
-                          'technical',
-                          'safety',
-                          'general',
-                        ]
-                            .map(
-                              (c) => DropdownMenuItem(
-                                value: c,
-                                child: Text(c),
-                              ),
-                            )
-                            .toList(),
-                        onChanged: (v) =>
-                            setState(() => _selectedCategory = v),
+                          labelText: 'Category',
+                        ),
+                        items:
+                            const [
+                                  'scheduling',
+                                  'finance',
+                                  'technical',
+                                  'safety',
+                                  'general',
+                                ]
+                                .map(
+                                  (c) => DropdownMenuItem(
+                                    value: c,
+                                    child: Text(c),
+                                  ),
+                                )
+                                .toList(),
+                        onChanged: (v) => setState(() => _selectedCategory = v),
                       ),
 
                       const SizedBox(height: 12),
@@ -317,17 +275,14 @@ class _CreateTaskBottomSheetState
                       DropdownButtonFormField<String>(
                         value: _selectedPriority,
                         decoration: const InputDecoration(
-                            labelText: 'Priority'),
+                          labelText: 'Priority',
+                        ),
                         items: const ['high', 'medium', 'low']
                             .map(
-                              (p) => DropdownMenuItem(
-                                value: p,
-                                child: Text(p),
-                              ),
+                              (p) => DropdownMenuItem(value: p, child: Text(p)),
                             )
                             .toList(),
-                        onChanged: (v) =>
-                            setState(() => _selectedPriority = v),
+                        onChanged: (v) => setState(() => _selectedPriority = v),
                       ),
                     ],
                   ),
@@ -337,14 +292,12 @@ class _CreateTaskBottomSheetState
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed:
-                        _isSubmitting ? null : _handleSubmit,
+                    onPressed: _isSubmitting ? null : _handleSubmit,
                     child: _isSubmitting
                         ? const SizedBox(
                             height: 20,
                             width: 20,
-                            child:
-                                CircularProgressIndicator(
+                            child: CircularProgressIndicator(
                               strokeWidth: 2,
                               color: Colors.white,
                             ),
@@ -353,8 +306,8 @@ class _CreateTaskBottomSheetState
                             isEditMode
                                 ? 'Update Task'
                                 : _showPreview
-                                    ? 'Save Task'
-                                    : 'Analyze',
+                                ? 'Save Task'
+                                : 'Analyze',
                           ),
                   ),
                 ),

@@ -10,6 +10,7 @@ import 'package:smart_task_manager/features/tasks/data/models/task_model.dart';
 import 'package:smart_task_manager/features/tasks/data/repositories/task_repository.dart';
 import 'package:smart_task_manager/features/tasks/presentation/providers/task_provider.dart';
 import 'package:smart_task_manager/features/tasks/presentation/widgets/create_task_bottom_sheet.dart';
+import 'package:smart_task_manager/features/tasks/presentation/widgets/task_search_delegate.dart';
 import 'package:smart_task_manager/features/tasks/presentation/widgets/task_skeleton_card.dart';
 
 class TaskDashboardScreen extends ConsumerStatefulWidget {
@@ -282,7 +283,34 @@ class _TaskDashboardScreenState
     final connectivity = ref.watch(connectivityProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Tasks')),
+      appBar: AppBar(
+  title: const Text('Tasks'),
+  actions: [
+    // 🔍 Search icon
+    IconButton(
+      icon: const Icon(Icons.search),
+      onPressed: () {
+        showSearch(
+          context: context,
+          delegate: TaskSearchDelegate(ref),
+        );
+      },
+    ),
+
+    // 🌙 Theme toggle
+    IconButton(
+      icon: Icon(
+        ref.watch(themeProvider) == ThemeMode.dark
+            ? Icons.light_mode
+            : Icons.dark_mode,
+      ),
+      onPressed: () {
+        ref.read(themeProvider.notifier).toggleTheme();
+      },
+    ),
+  ],
+),
+
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           showModalBottomSheet(
