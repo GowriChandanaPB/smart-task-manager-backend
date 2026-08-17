@@ -1,10 +1,17 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
+class ApiConfig {
+  static const String baseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: 'https://smart-task-manager-backend-1.onrender.com/api',
+  );
+}
+
 class DioClient {
   static final Dio dio = Dio(
     BaseOptions(
-      baseUrl: 'https://smart-task-manager-backend-1.onrender.com/api',
+      baseUrl: ApiConfig.baseUrl,
       connectTimeout: const Duration(seconds: 15),
       receiveTimeout: const Duration(seconds: 15),
       headers: {
@@ -44,14 +51,19 @@ class _ErrorInterceptor extends Interceptor {
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
     String message = 'Something went wrong';
+    final responseData = err.response?.data;
 
     if (err.type == DioExceptionType.connectionTimeout) {
       message = 'Connection timeout';
     } else if (err.type == DioExceptionType.receiveTimeout) {
       message = 'Server not responding';
     } else if (err.type == DioExceptionType.badResponse) {
-      message =
-          err.response?.data['message'] ?? 'Server error occurred';
+      if (responseData is Map<String, dynamic>) {
+        message = responseData['message']?.toString() ??
+            'Server error occurred';
+      } else {
+        message = 'Server error occurred';
+      }
     } else if (err.type == DioExceptionType.unknown) {
       message = 'No internet connection';
     }

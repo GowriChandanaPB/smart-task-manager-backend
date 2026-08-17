@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/models/task_model.dart';
 import '../../data/repositories/task_repository.dart';
-import '../providers/create_task_provider.dart';
 import '../providers/task_provider.dart';
 
 class CreateTaskBottomSheet extends ConsumerStatefulWidget {
@@ -108,23 +108,35 @@ class _CreateTaskBottomSheetState extends ConsumerState<CreateTaskBottomSheet> {
         );
       } else if (_showPreview) {
         // ✅ CREATE (after analyze)
-        await ref.read(createTaskProvider(payload).future);
+        await TaskRepository().createTask(payload);
       } else {
         // 🔍 ANALYZE
-        final result = await ref.read(createTaskProvider(payload).future);
+        final result = await TaskRepository().analyzeTask(payload);
+
+        if (result['category'] == null || result['priority'] == null) {
+          throw const FormatException(
+            'Analyze response must include category and priority',
+          );
+        }
+
+        if (!mounted) return;
 
         setState(() {
           _previewData = result;
           _showPreview = true;
           _selectedCategory = result['category'];
           _selectedPriority = result['priority'];
+          _isSubmitting = false;
         });
-        
-        setState(() => _isSubmitting = false);
-        //return;
+
+        return;
       }
 
-      await ref.refresh(taskProvider.future);
+      if (!mounted) return;
+
+      ref.invalidate(taskProvider);
+
+      if (!mounted) return;
 
       Navigator.pop(context);
 
@@ -137,15 +149,30 @@ class _CreateTaskBottomSheetState extends ConsumerState<CreateTaskBottomSheet> {
           ),
         ),
       );
-    } catch (_) {
+    } on DioException catch (e) {
+      if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Failed to save task'),
+        SnackBar(
+          content: Text(
+            e.error?.toString() ?? 'Failed to save task',
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString()),
           backgroundColor: Colors.red,
         ),
       );
     } finally {
-      setState(() => _isSubmitting = false);
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
     }
   }
 

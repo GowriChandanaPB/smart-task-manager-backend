@@ -163,16 +163,20 @@ class _TaskDashboardScreenState
   // TASK ACTIONS
   // -------------------------------
 
+  Future<void> _setTaskStatus(TaskModel task, String status) async {
+    await TaskRepository().updateTaskStatus(
+      taskId: task.id,
+      status: status,
+    );
+
+    ref.invalidate(taskProvider);
+  }
+
   Future<void> _toggleTaskStatus(TaskModel task) async {
     final newStatus =
         task.status == 'completed' ? 'pending' : 'completed';
 
-    await TaskRepository().updateTaskStatus(
-      taskId: task.id,
-      status: newStatus,
-    );
-
-    ref.invalidate(taskProvider);
+    await _setTaskStatus(task, newStatus);
   }
 
   Future<void> _confirmDelete(TaskModel task) async {
@@ -245,6 +249,13 @@ class _TaskDashboardScreenState
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
+                _outlinedIconButton(
+                  icon: Icons.play_arrow,
+                  borderColor: Colors.blue,
+                  iconColor: Colors.blue,
+                  onTap: () => _setTaskStatus(task, 'in_progress'),
+                ),
+                const SizedBox(width: 8),
                 _outlinedIconButton(
                   icon: Icons.edit,
                   borderColor: Colors.grey,

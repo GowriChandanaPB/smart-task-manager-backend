@@ -4,7 +4,10 @@ import '../models/task_model.dart';
 class TaskRepository {
   Future<List<TaskModel>> fetchTasks() async {
     final response = await DioClient.dio.get('/tasks');
-    final List tasks = response.data['tasks'];
+    final data = response.data;
+    final List tasks = data is Map<String, dynamic> && data['tasks'] is List
+        ? data['tasks'] as List
+        : const [];
 
     return tasks
         .map((e) => TaskModel.fromJson(e))

@@ -6,6 +6,31 @@ import {
   suggestActions
 } from "../services/classification.service.js";
 
+export const analyzeTask = async (req, res) => {
+  try {
+    const { title, description = "" } = req.body ?? {};
+
+    if (typeof title !== "string" || title.trim().length < 3) {
+      return res.status(400).json({
+        message: "Title is required"
+      });
+    }
+
+    const fullText = `${title} ${description}`;
+    const classification = classifyTask(fullText);
+
+    res.json({
+      ...classification,
+      extracted_entities: extractEntities(description),
+      suggested_actions: suggestActions(classification.category)
+    });
+  } catch (err) {
+    res.status(500).json({
+      message: "Failed to analyze task",
+      error: err.message
+    });
+  }
+};
 
 export const createTask = async (req, res) => {
   try {
@@ -17,9 +42,18 @@ export const createTask = async (req, res) => {
       });
     }
 
-    const { title, description = "", assigned_to, due_date } = parsed.data;
+    const {
+      title,
+      description = "",
+      category: providedCategory,
+      priority: providedPriority,
+      assigned_to,
+      due_date
+    } = parsed.data;
     const fullText = `${title} ${description}`;
-    const { category, priority } = classifyTask(fullText);
+    const classification = classifyTask(fullText);
+    const category = providedCategory ?? classification.category;
+    const priority = providedPriority ?? classification.priority;
     const extractedEntities = extractEntities(description);
     const suggestedActions = suggestActions(category);
     const { data: task, error } = await supabase
@@ -145,6 +179,8 @@ export const updateTask = async (req, res) => {
     }
 
     const updates = parsed.data;
+    const hasTextChanges =
+      typeof updates.title === "string" || typeof updates.description === "string";
 
     const { data: existingTask, error: fetchError } = await supabase
       .from("tasks")
@@ -156,18 +192,20 @@ export const updateTask = async (req, res) => {
       return res.status(404).json({ message: "Task not found" });
     }
 
-    if (updates.title || updates.description) {
+    if (hasTextChanges) {
       const fullText = `${updates.title ?? existingTask.title} ${
         updates.description ?? existingTask.description ?? ""
       }`;
 
-      const { category, priority } = classifyTask(fullText);
-      updates.category = category;
-      updates.priority = priority;
+      const classification = classifyTask(fullText);
+      updates.category = updates.category ?? classification.category;
+      updates.priority = updates.priority ?? classification.priority;
       updates.extracted_entities = extractEntities(
         updates.description ?? existingTask.description ?? ""
       );
-      updates.suggested_actions = suggestActions(category);
+      updates.suggested_actions = suggestActions(updates.category);
+    } else if (updates.category) {
+      updates.suggested_actions = suggestActions(updates.category);
     }
 
     updates.updated_at = new Date().toISOString();

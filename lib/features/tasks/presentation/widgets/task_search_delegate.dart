@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../data/models/task_model.dart';
 import '../providers/task_provider.dart';
 
 class TaskSearchDelegate extends SearchDelegate {
